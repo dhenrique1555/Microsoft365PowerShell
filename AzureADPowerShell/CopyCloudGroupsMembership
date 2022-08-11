@@ -1,9 +1,9 @@
 #Parameters
-$SourceUserAccount = "ext.tamires.silva.ts1@nexaresources.com"
-$TargetUserAccount = "tamires.silva@nexaresources.com"
+$SourceUserAccount = read-host "Insert Source User"
+$TargetUserAccount = read-host "Inser Target User"
  
 #Connect to Azure AD
-#Connect-AzureAD
+Connect-AzureAD
  
 #Get the Source and Target users
 $SourceUser = Get-AzureADUser -Filter "UserPrincipalName eq '$SourceUserAccount'"
@@ -26,7 +26,7 @@ If($SourceUser -ne $Null -and $TargetUser -ne $Null)
         {
             #Add Target user to the Source User's group
             Add-AzureADGroupMember -ObjectId $Membership.ObjectId -RefObjectId $TargetUser.ObjectId
-            Write-host "Added user to Group:" $Membership.DisplayName
+            Write-host "Added user $targetuseraccount to Group:" $Membership.DisplayName
         }
     }
 }
