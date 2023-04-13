@@ -1,7 +1,9 @@
+#Graph Permissions needed in App: "Policy.Read.All" for Get-MgIdentityConditionalAccessPolicy,"User.Read.All" for Get-mgUser
+
 #ConnectGraph
-$ApplicationID = "e405030c-e833-44d5-8833-e15a79db41e7"
-$TenatDomainName = "votorantimindustrial.onmicrosoft.com"
-$AccessSecret = "pBe8Q~ALTLJv3n7T_5~7tnitwWLLQrZQR8sTybS1"
+$ApplicationID = read-host "Insert App ID"
+$TenatDomainName = read-host "Insert Tenant Root Domain"
+$AccessSecret = read-host "Insert App Secret"
 
 
 
@@ -124,7 +126,7 @@ Policy = $policyname
 
 
 
-#Get Members from scoped policy nested groups
+#Get Members from scoped policy nested groups(NotFinished)
 Foreach($ngroup in $nestedgroup)
 {
 $nestedgroupmemberdsid = get-mggroupmember -groupid $ngroup -all
@@ -149,21 +151,19 @@ $resultexcludedgroups |Export-Csv $Env:temp/ResultExcludedGroupsConditionalAcces
 $resultincludedgroupsmembers |Export-Csv $Env:temp/ResultIncludedGroupsMembersConditionalAccessPolicies.csv -NoTypeInformation
 $ResultNestedIncludedGroupMembers |Export-Csv $Env:temp/ResultNestedIncludedGroupMembersconditionalaccesspolicies.csv -NoTypeInformation
 
-#Storage Account Properties
-$StorageAccountName = 'sao365vsa'
-$StorageAccountKey = "v3W0KcD2MZkVBlYVWez665HwpbV1iowmnnvVXHRZv1lWSGuItyb4PEi2IzCAs6S/5+0MkNqRXjSFDWTqeitukA=="
+#Storage Account Properties for Azure Automation 
+$StorageAccountName = read-host "Insert Storage Account Name"
+$StorageAccountKey = read-host "Insert Storage Account Key"
 $StorageContext = New-AzStorageContext $StorageAccountName -StorageAccountKey $StorageAccountKey
+$ContainerName  = read-host "Insert Container Name"
 $FileName = 'ResultIncludedUsersConditionalAccessPolicies.csv'
 $filename1 = 'ResultExcludedUsersConditionalAccessPolicies.csv'
 $filename2 =  'ResultIncludedGroupsConditionalAccessPolicies.csv'
 $filename3 =  'ResultExcludedGroupsConditionalAccessPolicies.csv'
 $filename4 = 'ResultIncludedGroupsMembersConditionalAccessPolicies.csv'
 $filename5 = 'ResultNestedIncludedGroupMembersconditionalaccesspolicies.csv'
-$ContainerName  = 'o365'
 
-#SaveFiles
-
-
+#SaveFiles to Storage Account
 Set-AzStorageBlobContent -Context $StorageContext -Container $ContainerName -File "$Env:temp/ResultExcludedUsersConditionalAccessPolicies.csv" -Blob $FileName1 -Force
 Set-AzStorageBlobContent -Context $StorageContext -Container $ContainerName -File "$Env:temp/ResultIncludedGroupsConditionalAccessPolicies.csv" -Blob $FileName2 -Force
 Set-AzStorageBlobContent -Context $StorageContext -Container $ContainerName -File "$Env:temp/ResultExcludedGroupsConditionalAccessPolicies.csv" -Blob $FileName3 -Force
