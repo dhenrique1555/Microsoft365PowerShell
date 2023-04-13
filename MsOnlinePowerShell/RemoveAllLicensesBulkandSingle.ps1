@@ -19,7 +19,7 @@ Set-MsolUserLicense -UserPrincipalName $upn -RemoveLicenses
 
 #-----------------------------------------------------------------------------------
 
-#Consult licenses for bulk users
+#Get licenses for bulk users
 $arquivo = get-content c:\temp\users.txt
 foreach ( $upn in $arquivo) {
 
