@@ -1,8 +1,4 @@
-$ApplicationID = "e405030c-e833-44d5-8833-e15a79db41e7"
-$TenatDomainName = "votorantimindustrial.onmicrosoft.com"
-$AccessSecret = "pBe8Q~ALTLJv3n7T_5~7tnitwWLLQrZQR8sTybS1"
-
-
+#Permissions needed: "User.Read.All","UserAuthenticationMethod.ReadWrite.All"
 
 $Body = @{    
     Grant_Type    = "client_credentials"
