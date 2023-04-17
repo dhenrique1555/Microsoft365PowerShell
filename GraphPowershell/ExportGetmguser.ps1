@@ -1,26 +1,3 @@
-﻿$ApplicationID = "e405030c-e833-44d5-8833-e15a79db41e7"
-$TenatDomainName = "votorantimindustrial.onmicrosoft.com"
-$AccessSecret = "pBe8Q~ALTLJv3n7T_5~7tnitwWLLQrZQR8sTybS1"
-
-
-
-$Body = @{    
-    Grant_Type    = "client_credentials"
-    Scope         = "https://graph.microsoft.com/.default"
-    client_Id     = $ApplicationID
-    Client_Secret = $AccessSecret
-}
-
-
-
-$ConnectGraph = Invoke-RestMethod -Uri "https://login.microsoftonline.com/$TenatDomainName/oauth2/v2.0/token" -Method POST -Body $Body
-$token = $ConnectGraph.access_token
-
-
-
-Connect-mggraph -accesstoken $token
-
-
 
 $Date = (Get-Date).AddDays(-30).AddHours(0).AddMinutes(-(Get-Date).Minute).AddSeconds(-(Get-Date).Second).AddMilliseconds(-(Get-Date).Milliseconds)
 
