@@ -6,7 +6,7 @@ Disable-Bitlocker -MountPoint C:
 
 
 
-##Enable Bitlocker
+##Enable Bitlocker For Devices with TPM
 #Test What Would Happen if Bitlocker was enabled
 $BVol = Get-BitLockerVolume -MountPoint "C"
 $Bvol.KeyProtector
