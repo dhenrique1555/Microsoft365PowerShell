@@ -31,7 +31,7 @@ foreach ($user in $arquivo) {
 
 
 
-$domain = $output | where-object {$_.onpremisesdomainname -eq "vceaa.votorantim.grupo"}
+
 
 
 
