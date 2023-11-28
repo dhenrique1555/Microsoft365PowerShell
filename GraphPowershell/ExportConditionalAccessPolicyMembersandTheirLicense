@@ -1,0 +1,488 @@
+easure-Command {
+#Required Modules
+#ImportExcel
+#Microsoft.Graph
+#Microsoft.Graph.Beta
+ 
+#Script Start
+$IDUserExclude = @()
+$IDUserInclude = @()
+$IDGroupExclude = @()
+$IDGroupInclude = @()
+
+
+#GetPoliciesandScopedUsers
+$nestedgroup = @()
+$resultincludedusers = @()
+$resultexcludedusers = @()
+$resultincludedgroups = @()
+$resultexcludedgroups = @()
+
+
+
+$idtype = @()
+$Policies = Get-MgIdentityConditionalAccessPolicy
+foreach($policy in $policies){
+$policyname = $Policy.displayname
+#start-sleep -seconds 10
+$IDUserInclude = $Policy.conditions.users.includeusers
+#start-sleep -seconds 10
+$IDUserExclude = $Policy.conditions.users.excludeusers
+#start-sleep -seconds 10
+$IDGroupInclude = $Policy.conditions.users.includegroups
+#start-sleep -seconds 10
+$IDGroupExclude = $Policy.conditions.users.excludegroups
+#start-sleep -seconds 10
+
+ 
+
+#Narrow Down Scoped Objects and Assigned Policy
+foreach($id in $iduserinclude){
+if($id -ne "All" -and $id -ne "None"){
+$userpolicy = get-mguser -userid $id
+$ResultIncludedUsers += New-Object PSObject -property $([ordered]@{
+ID = $id
+UserPrincipalName = $Userpolicy.userPrincipalName
+Username = $userpolicy.Displayname
+Policy = $policyname
+})
+}
+else{}
+}
+foreach($id in $iduserexclude){
+$userpolicy = get-mguser -userid $id
+$ResultexcludedUsers += New-Object PSObject -property $([ordered]@{
+ID = $id
+UserPrincipalName = $Userpolicy.userPrincipalName
+Username = $userpolicy.Displayname
+Policy = $policyname
+})
+}
+foreach($id in $idgroupinclude){
+$grouppolicy = get-mggroup -groupid $id
+$ResultIncludedGroups += New-Object PSObject -property $([ordered]@{
+ID = $id
+Groupname = $grouppolicy.Displayname
+GroupID = $grouppolicy.Id
+Policy = $policyname
+})
+}
+foreach($id in $idgroupexclude){
+$grouppolicy = get-mggroup -groupid $id
+$ResultExcludedGroups += New-Object PSObject -property $([ordered]@{
+ID = $id
+Groupname = $grouppolicy.Displayname
+GroupID = $grouppolicy.Id
+Policy = $policyname
+})
+}
+}
+
+##Generate a different export to csv for each $result created in above exports
+$resultincludedusers | Export-csv CAPoliciesIncludedUsers.csv -notypeinformation
+$resultexcludedusers | Export-csv CAPoliciesExcludedUsers.csv -notypeinformation
+$resultincludedgroups | Export-csv CAPoliciesIncludedGroups.csv -notypeinformation
+$resultexcludedgroups | Export-csv CAPoliciesExcludedGroups.csv -notypeinformation
+ 
+#Use the csv created before to generate the report of the included group members and nested groups
+$dataincludedgroups = import-csv -path c:\temp\CAPoliciesIncludedGroups.csv
+
+#Set Excel Filename for all outputs
+$excelfilename = "TesteExcel4.xlsx"
+#Export Directly Included Users
+$resulteIncludedusers | export-excel $excelfilename -worksheetname "UsuariosIncluidosCAPolicies"
+#Export Directly Excluded Users 
+$resultexcludedusers | export-excel $excelfilename -worksheetname "UsuariosExcluidosCAPolicies"
+
+
+#Export Direct Group Policy Members
+$membersoutput = @()
+foreach($group in $dataincludedgroups){
+$groupname = $group.groupname
+$policy = $group.Policy
+$groupid = get-mggroup -filter "Displayname eq '$groupname'"
+$groupmembers = get-mggroupmember -groupid $groupid.id -all 
+ [array]$DataMembers = $Groupmembers.AdditionalProperties
+    
+    $json = $datamembers | convertto-json
+    $memberinfo = $json | convertfrom-json
+    $groupsattribute = "#microsoft.graph.group"
+    
+    foreach($member in $memberinfo){
+        $membertype = $member."@odata.type"
+        $membertype2 = $membertype.Replace("#microsoft.graph.","")
+        $MembersOutput += New-Object PSObject -property $([ordered]@{
+        UserPrincipalName = $member.userprincipalname
+        GroupDisplayName = $member.displayName
+        MemberType = $membertype2
+        ParentGroupName = $groupname
+        Policy = $policy
+        
+    })
+    }
+}
+$membersoutput | Export-excel $excelfilename -worksheetname "MembrosdeGruposCAPolicies"
+
+#Export Nested Group Policy members
+$membersoutput1 = @()
+$assignedgpolicygroups = $membersoutput | where-object {$_.membertype -eq "group"}
+foreach($group in $assignedgpolicygroups){
+    $nestedgroupdisplayname = $group.GroupDisplayName
+    $nestedgrouppolicy = $group.Policy
+    $nestedgroupid = get-mggroup -filter "Displayname eq '$nestedgroupdisplayname'"
+$nestedgroupmembers = get-mggroupmember -groupid $nestedgroupid.id -all 
+[array]$DataMembers1 = $nestedGroupmembers.AdditionalProperties
+    
+    $json1 = $datamembers1 | convertto-json
+    $memberinfo1 = $json1 | convertfrom-json
+    $groupsattribute = "#microsoft.graph.group"
+    
+    foreach($member1 in $memberinfo1){
+        $membertype1 = $member1."@odata.type"
+        $membertype3 = $membertype1.Replace("#microsoft.graph.","")
+        $MembersOutput1 += New-Object PSObject -property $([ordered]@{
+        UserPrincipalName = $member1.userprincipalname
+        DisplayName = $member1.displayName
+        MemberType = $membertype3
+        GroupName = $nestedgroupdisplayname
+        Policy = $nestedgrouppolicy
+        })
+    }
+}
+$membersoutput1 | Export-excel $excelfilename -worksheetname "MembrosdeSubGruposCAPolicies"
+
+#Use the csvs created before to generate the report of the excluded group members and nested groups
+$dataexcludedgroups = import-csv -path c:\temp\CAPoliciesexcludedGroups.csv
+
+#Export Direct Group Exclusion Policy Members
+$membersoutput = @()
+foreach($group in $dataexcludedgroups){
+$groupname = $group.groupname
+$policy = $group.Policy
+$groupid = get-mggroup -filter "Displayname eq '$groupname'"
+$groupmembers = get-mggroupmember -groupid $groupid.id -all 
+ [array]$DataMembers = $Groupmembers.AdditionalProperties
+    
+    $json = $datamembers | convertto-json
+    $memberinfo = $json | convertfrom-json
+    $groupsattribute = "#microsoft.graph.group"
+    
+    foreach($member in $memberinfo){
+        $membertype = $member."@odata.type"
+        $membertype2 = $membertype.Replace("#microsoft.graph.","")
+        $MembersOutput += New-Object PSObject -property $([ordered]@{
+        UserPrincipalName = $member.userprincipalname
+        GroupDisplayName = $member.displayName
+        MemberType = $membertype2
+        ParentGroupName = $groupname
+        Policy = $policy
+        
+    })
+    }
+}
+$membersoutput | Export-excel $excelfilename -worksheetname "MembrosGruposExclusaoCA"
+
+#Export Nested Group Exclusion Policy members
+$membersoutput1 = @()
+$assignedgpolicygroups = $membersoutput | where-object {$_.membertype -eq "group"}
+foreach($group in $assignedgpolicygroups){
+    $nestedgroupdisplayname = $group.GroupDisplayName
+    $nestedgrouppolicy = $group.Policy
+    $nestedgroupid = get-mggroup -filter "Displayname eq '$nestedgroupdisplayname'"
+$nestedgroupmembers = get-mggroupmember -groupid $nestedgroupid.id -all 
+[array]$DataMembers1 = $nestedGroupmembers.AdditionalProperties
+    
+    $json1 = $datamembers1 | convertto-json
+    $memberinfo1 = $json1 | convertfrom-json
+    $groupsattribute = "#microsoft.graph.group"
+    
+    foreach($member1 in $memberinfo1){
+        $membertype1 = $member1."@odata.type"
+        $membertype3 = $membertype1.Replace("#microsoft.graph.","")
+        $MembersOutput1 += New-Object PSObject -property $([ordered]@{
+        UserPrincipalName = $member1.userprincipalname
+        DisplayName = $member1.displayName
+        MemberType = $membertype3
+        GroupName = $nestedgroupdisplayname
+        Policy = $nestedgrouppolicy
+        })
+    }
+}
+$membersoutput1 | Export-excel $excelfilename -worksheetname "MembrosSubGruposExclusaoCA"
+
+
+#Get all tenant licensed users 
+#Get FriendlyNames
+$Sku = @{
+    "SPE_E3"			     = "Microsoft 365 E3"
+	"SPE_E5"			     = "Microsoft 365 E5"
+	"Microsoft_teams_premium" = "MIcrosoft Teams Premium"
+	"MCOPSTN_5" = "Microsoft 365 Domestic Calling Plan (120 Minutes)"
+	"MEETING_ROOM" = "Microsoft Teams Rooms Standard"
+	"OFFICE365_MULTIGEO" = "Multi-Geo Capabilities in Office 365"
+	"MCOEV" = "Microsoft Teams Phone Standard"
+	"O365_BUSINESS_ESSENTIALS"			     = "Office 365 Business Essentials"
+	"O365_BUSINESS_PREMIUM"				     = "Office 365 Business Premium"
+	"DESKLESSPACK"						     = "Office 365 F3"
+	"DESKLESSWOFFPACK"					     = "Office 365 (Plan K2)"
+	"LITEPACK"							     = "Office 365 (Plan P1)"
+	"EXCHANGESTANDARD"					     = "Office 365 Exchange Online Only"
+	"STANDARDPACK"						     = "Office 365 E1"
+	"STANDARDWOFFPACK"					     = "Office 365 (Plan E2)"
+	"ENTERPRISEPACK"						 = "Office 365 E3"
+	"ENTERPRISEPACKLRG"					     = "Enterprise Plan E3"
+	"ENTERPRISEWITHSCAL"					 = "Enterprise Plan E4"
+	"STANDARDPACK_STUDENT"				     = "Office 365 (Plan A1) for Students"
+	"STANDARDWOFFPACKPACK_STUDENT"		     = "Office 365 (Plan A2) for Students"
+	"ENTERPRISEPACK_STUDENT"				 = "Office 365 (Plan A3) for Students"
+	"ENTERPRISEWITHSCAL_STUDENT"			 = "Office 365 (Plan A4) for Students"
+	"STANDARDPACK_FACULTY"				     = "Office 365 (Plan A1) for Faculty"
+	"STANDARDWOFFPACKPACK_FACULTY"		     = "Office 365 (Plan A2) for Faculty"
+	"ENTERPRISEPACK_FACULTY"				 = "Office 365 (Plan A3) for Faculty"
+	"ENTERPRISEWITHSCAL_FACULTY"			 = "Office 365 (Plan A4) for Faculty"
+	"ENTERPRISEPACK_B_PILOT"				 = "Office 365 (Enterprise Preview)"
+	"STANDARD_B_PILOT"					     = "Office 365 (Small Business Preview)"
+	"VISIOCLIENT"						     = "Visio Online Plan 2"
+	"POWER_BI_ADDON"						 = "Office 365 Power BI Addon"
+	"POWER_BI_INDIVIDUAL_USE"			     = "Power BI Individual User"
+	"POWER_BI_STANDALONE"				     = "Power BI Stand Alone"
+	"POWER_BI_STANDARD"					     = "Power BI Free"
+	"PROJECTESSENTIALS"					     = "Project Lite"
+	"PROJECTCLIENT"						     = "Project Professional"
+	"PROJECTONLINE_PLAN_1"				     = "Project Online"
+	"PROJECTONLINE_PLAN_2"				     = "Project Online and PRO"
+	"ProjectPremium"						 = "Project Online Premium"
+	"ECAL_SERVICES"						     = "ECAL"
+	"EMS"								     = "Enterprise Mobility + Security E3"
+	"RIGHTSMANAGEMENT_ADHOC"				 = "Windows Azure Rights Management"
+	"MCOMEETADV"							 = "Microsoft 365 Audio Conferencing"
+	"SHAREPOINTSTORAGE"					     = "SharePoint storage"
+	"PLANNERSTANDALONE"					     = "Planner Standalone"
+	"CRMIUR"								 = "CMRIUR"
+	"BI_AZURE_P1"						     = "Power BI Reporting and Analytics"
+	"INTUNE_A"							     = "Windows Intune Plan A"
+	"PROJECTWORKMANAGEMENT"				     = "Office 365 Planner Preview"
+	"ATP_ENTERPRISE"						 = "Exchange Online Advanced Threat Protection"
+	"EQUIVIO_ANALYTICS"					     = "Office 365 Advanced eDiscovery"
+	"AAD_BASIC"							     = "Azure Active Directory Basic"
+	"RMS_S_ENTERPRISE"					     = "Azure Active Directory Rights Management"
+	"AAD_PREMIUM"						     = "Azure Active Directory Premium"
+	"MFA_PREMIUM"						     = "Azure Multi-Factor Authentication"
+	"STANDARDPACK_GOV"					     = "Microsoft Office 365 (Plan G1) for Government"
+	"STANDARDWOFFPACK_GOV"				     = "Microsoft Office 365 (Plan G2) for Government"
+	"ENTERPRISEPACK_GOV"					 = "Microsoft Office 365 (Plan G3) for Government"
+	"ENTERPRISEWITHSCAL_GOV"				 = "Microsoft Office 365 (Plan G4) for Government"
+	"DESKLESSPACK_GOV"					     = "Microsoft Office 365 (Plan K1) for Government"
+	"ESKLESSWOFFPACK_GOV"				     = "Microsoft Office 365 (Plan K2) for Government"
+	"EXCHANGESTANDARD_GOV"				     = "Microsoft Office 365 Exchange Online (Plan 1) only for Government"
+	"EXCHANGEENTERPRISE_GOV"				 = "Microsoft Office 365 Exchange Online (Plan 2) only for Government"
+	"SHAREPOINTDESKLESS_GOV"				 = "SharePoint Online Kiosk"
+	"EXCHANGE_S_DESKLESS_GOV"			     = "Exchange Kiosk"
+	"RMS_S_ENTERPRISE_GOV"				     = "Windows Azure Active Directory Rights Management"
+	"OFFICESUBSCRIPTION_GOV"				 = "Office ProPlus"
+	"MCOSTANDARD_GOV"					     = "Lync Plan 2G"
+	"SHAREPOINTWAC_GOV"					     = "Office Online for Government"
+	"SHAREPOINTENTERPRISE_GOV"			     = "SharePoint Plan 2G"
+	"EXCHANGE_S_ENTERPRISE_GOV"			     = "Exchange Plan 2G"
+	"EXCHANGE_S_ARCHIVE_ADDON_GOV"		     = "Exchange Online Archiving"
+	"EXCHANGE_S_DESKLESS"				     = "Exchange Online Kiosk"
+	"SHAREPOINTDESKLESS"					 = "SharePoint Online Kiosk"
+	"SHAREPOINTWAC"						     = "Office Online"
+	"YAMMER_ENTERPRISE"					     = "Yammer for the Starship Enterprise"
+	"EXCHANGE_L_STANDARD"				     = "Exchange Online (Plan 1)"
+	"MCOLITE"							     = "Lync Online (Plan 1)"
+	"SHAREPOINTLITE"						 = "SharePoint Online (Plan 1)"
+	"OFFICE_PRO_PLUS_SUBSCRIPTION_SMBIZ"	 = "Office ProPlus"
+	"EXCHANGE_S_STANDARD_MIDMARKET"		     = "Exchange Online (Plan 1)"
+	"MCOSTANDARD_MIDMARKET"				     = "Lync Online (Plan 1)"
+	"SHAREPOINTENTERPRISE_MIDMARKET"		 = "SharePoint Online (Plan 1)"
+	"OFFICESUBSCRIPTION"					 = "Office ProPlus"
+	"YAMMER_MIDSIZE"						 = "Yammer"
+	"DYN365_ENTERPRISE_PLAN1"			     = "Dynamics 365 Customer Engagement Plan Enterprise Edition"
+	"ENTERPRISEPREMIUM_NOPSTNCONF"		     = "Enterprise E5 (without Audio Conferencing)"
+	"ENTERPRISEPREMIUM"					     = "Enterprise E5 (with Audio Conferencing)"
+	"MCOSTANDARD"						     = "Skype for Business Online Standalone Plan 2"
+	"PROJECT_MADEIRA_PREVIEW_IW_SKU"		 = "Dynamics 365 for Financials for IWs"
+	"STANDARDWOFFPACK_IW_STUDENT"		     = "Office 365 Education for Students"
+	"STANDARDWOFFPACK_IW_FACULTY"		     = "Office 365 Education for Faculty"
+	"EOP_ENTERPRISE_FACULTY"				 = "Exchange Online Protection for Faculty"
+	"EXCHANGESTANDARD_STUDENT"			     = "Exchange Online (Plan 1) for Students"
+	"OFFICESUBSCRIPTION_STUDENT"			 = "Office ProPlus Student Benefit"
+	"STANDARDWOFFPACK_FACULTY"			     = "Office 365 Education E1 for Faculty"
+	"STANDARDWOFFPACK_STUDENT"			     = "Microsoft Office 365 (Plan A2) for Students"
+	"DYN365_FINANCIALS_BUSINESS_SKU"		 = "Dynamics 365 for Financials Business Edition"
+	"DYN365_FINANCIALS_TEAM_MEMBERS_SKU"	 = "Dynamics 365 for Team Members Business Edition"
+	"FLOW_FREE"							     = "Microsoft Flow Free"
+	"POWER_BI_PRO"						     = "Power BI Pro"
+	"O365_BUSINESS"						     = "Office 365 Business"
+	"DYN365_ENTERPRISE_SALES"			     = "Dynamics Office 365 Enterprise Sales"
+	"RIGHTSMANAGEMENT"					     = "Rights Management"
+	"PROJECTPROFESSIONAL"				     = "Project Professional"
+	"VISIOONLINE_PLAN1"					     = "Visio Online Plan 1"
+	"EXCHANGEENTERPRISE"					 = "Exchange Online Plan 2"
+	"DYN365_ENTERPRISE_P1_IW"			     = "Dynamics 365 P1 Trial for Information Workers"
+	"DYN365_ENTERPRISE_TEAM_MEMBERS"		 = "Dynamics 365 For Team Members Enterprise Edition"
+	"CRMSTANDARD"						     = "Microsoft Dynamics CRM Online Professional"
+	"EXCHANGEARCHIVE_ADDON"				     = "Exchange Online Archiving For Exchange Online"
+	"EXCHANGEDESKLESS"					     = "Exchange Online Kiosk"
+	"SPZA_IW"							     = "App Connect"
+	
+}
+
+Measure-Command {
+Measure-Command {
+#Get All Users
+$allusers = @()
+$allusers = Get-MgbetaUser -Filter 'assignedLicenses/$count ne 0' -ConsistencyLevel eventual -CountVariable licensedUserCount -all -Property "accountEnabled,onPremisesDistinguishedName, onPremisesDomainName,displayName,userPrincipalName,UserType,Id,jobtitle,EmployeeId,OfficeLocation,Mail,Department,Country,UsageLocation,onPremisesSamAccountName,CreatedDatetime,LastPasswordChangeDateTime,signInActivity"
+}
+#Create Output
+$output = @()
+$Counter = 0 
+foreach($user in $allusers){
+$Counter++
+		$percent = (($counter / $allusers.count) * 100)
+		Write-Progress -Activity "Extracao em andamento...$user" -status "$percent%"  -percentcomplete $percent
+$lastlogon = $user.signInActivity.lastSignInDateTime
+	 if($lastlogon -ne $null){
+     $unformatteddate = [datetime]$lastlogon
+ $formatteddatelastlogon = $unformatteddate.tostring("dd'/'MM'/'yyyy HH:mm")
+ } Else {$formatteddatelastlogon = $null}
+ 
+ $lastpassreset = $user.LastPasswordChangeDateTime
+	 if($lastpassreset -ne $null){
+     $unformatteddatepass = [datetime]$lastpassreset
+ $formatteddatepass = $unformatteddatepass.tostring("dd'/'MM'/'yyyy HH:mm")
+ } Else {$formatteddatepass = $null}
+ 
+
+#Export licenses
+$licenses = Get-mguserlicensedetail -userid $user.UserPrincipalName
+$licenses2 = $licenses.skupartnumber
+$finallicenses = @()
+#FOrmat Licenses 
+foreach($license in $licenses2){
+
+$FriendlyLicense = $Sku.Item($license)
+if($friendlylicense -ne $null){
+$finallicenses += $friendlylicense
+}
+Else{$friendlylicense = "Licença Sem Nome Amigável"
+$finallicenses += $friendlylicense
+}
+$reportlicenses = $finallicenses -join ","
+}
+
+
+ $data = New-Object -TypeName psobject
+
+  $data | Add-Member -MemberType NoteProperty -Name DisplayName -Value $user.DisplayName
+  $data | Add-Member -MemberType NoteProperty -Name UserUPN -Value $user.UserPrincipalName
+  $data | Add-Member -MemberType NoteProperty -Name UserOnPremisesDomain -Value $user.onPremisesDomainName
+  $data | Add-Member -MemberType NoteProperty -Name Licenses -Value $reportlicenses
+  $data | Add-Member -MemberType NoteProperty -Name Office -Value $user.officelocation
+  $data | Add-Member -MemberType NoteProperty -Name Country -Value $user.Country
+  $data | Add-Member -MemberType NoteProperty -Name UsageLocation -Value $user.UsageLocation
+  $data | Add-Member -MemberType NoteProperty -Name Title -Value $user.Jobtitle
+  $data | Add-Member -MemberType NoteProperty -Name AccountEnabled -Value $user.accountEnabled
+  $data | Add-Member -MemberType NoteProperty -Name LastPasswordChangeDateTime -Value $formatteddatepass
+  $data | Add-Member -MemberType NoteProperty -Name LastAzureAdLogon -Value $formatteddatelastlogon
+ $output += $data
+ }
+ }
+ $output | Export-excel $excelfilename -worksheetname "TodosUsuariosLicenciados"
+
+#VLOOKUP between direct users and licenses
+$list=New-Object System.Collections.ArrayList
+
+
+$excelfile1 = "testeexcel.xlsx" 
+$excelfile2 = "testeexcel.xlsx"  
+$sheetname1 = "MembrosdeGruposCAPolicies"
+$sheetname2 = "TodosUsuariosLicenciados"
+
+$SName1=$SheetName1
+$SName2=$SheetName2
+ 
+$File1=Import-Excel $ExcelFile1 -WorksheetName $SName1
+$File2=Import-Excel $ExcelFile2 -WorksheetName $SName2
+ 
+$Excel1LookUPColumnHeader = "UserPrincipalName"
+$Excel2LookUPColumnHeader = "UserUPN"
+$Excel2OutPutColumnHeader = "Licenses"
+$srcColumn=$Excel1LookUPColumnHeader
+$DestColumn=$Excel2OutPutColumnHeader
+ 
+ 
+foreach($src in $File1)
+{
+ 
+   foreach($dst in $File2)
+   {
+     if($src.$srcColumn -eq $dst.$Excel2LookUPColumnHeader)
+       {
+         
+        $op=[PSCustomObject]@{
+        Lookup=$src.$srcColumn
+        Result=$dst.$DestColumn
+        }
+        $list.Add($op)
+         
+         
+       }
+ 
+   }
+ 
+}
+$list  | Export-excel $excelfilename -worksheetname "PROCVMembrosdeGruposELicencas"
+
+#VLOOKUP between indirect users and licenses
+$list=New-Object System.Collections.ArrayList
+
+
+$excelfile1 = "testeexcel.xlsx" 
+$excelfile2 = "testeexcel.xlsx"  
+$sheetname1 = "MembrosdeSubGruposCAPolicies"
+$sheetname2 = "TodosUsuariosLicenciados"
+
+$SName1=$SheetName1
+$SName2=$SheetName2
+ 
+$File1=Import-Excel $ExcelFile1 -WorksheetName $SName1
+$File2=Import-Excel $ExcelFile2 -WorksheetName $SName2
+ 
+$Excel1LookUPColumnHeader = "UserPrincipalName"
+$Excel2LookUPColumnHeader = "UserUPN"
+$Excel2OutPutColumnHeader = "Licenses"
+$srcColumn=$Excel1LookUPColumnHeader
+$DestColumn=$Excel2OutPutColumnHeader
+ 
+ 
+foreach($src in $File1)
+{
+ 
+   foreach($dst in $File2)
+   {
+     if($src.$srcColumn -eq $dst.$Excel2LookUPColumnHeader)
+       {
+         
+        $op=[PSCustomObject]@{
+        Lookup=$src.$srcColumn
+        Result=$dst.$DestColumn
+        }
+        $list.Add($op)
+         
+         
+       }
+ 
+   }
+ 
+}
+$list  | Export-excel $excelfilename -worksheetname "PROCVMembrosdeSubGruposELicencas"
+ 
+}
+
+#Script End
+ 
+ 
+ 
+ 
