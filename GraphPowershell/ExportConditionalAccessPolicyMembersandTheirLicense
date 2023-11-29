@@ -1,4 +1,4 @@
-easure-Command {
+Measure-Command {
 #Required Modules
 #ImportExcel
 #Microsoft.Graph
@@ -47,7 +47,8 @@ Username = $userpolicy.Displayname
 Policy = $policyname
 })
 }
-else{}
+elseif($id -eq "All"){
+$id = "All"
 }
 foreach($id in $iduserexclude){
 $userpolicy = get-mguser -userid $id
@@ -88,9 +89,9 @@ $resultexcludedgroups | Export-csv CAPoliciesExcludedGroups.csv -notypeinformati
 $dataincludedgroups = import-csv -path c:\temp\CAPoliciesIncludedGroups.csv
 
 #Set Excel Filename for all outputs
-$excelfilename = "TesteExcel4.xlsx"
+$excelfilename = "AssignmentsConditionalAccessPolicies.xlsx"
 #Export Directly Included Users
-$resulteIncludedusers | export-excel $excelfilename -worksheetname "UsuariosIncluidosCAPolicies"
+$resultIncludedusers | export-excel $excelfilename -worksheetname "UsuariosIncluidosCAPolicies"
 #Export Directly Excluded Users 
 $resultexcludedusers | export-excel $excelfilename -worksheetname "UsuariosExcluidosCAPolicies"
 
@@ -333,7 +334,7 @@ Measure-Command {
 Measure-Command {
 #Get All Users
 $allusers = @()
-$allusers = Get-MgbetaUser -Filter 'assignedLicenses/$count ne 0' -ConsistencyLevel eventual -CountVariable licensedUserCount -all -Property "accountEnabled,onPremisesDistinguishedName, onPremisesDomainName,displayName,userPrincipalName,UserType,Id,jobtitle,EmployeeId,OfficeLocation,Mail,Department,Country,UsageLocation,onPremisesSamAccountName,CreatedDatetime,LastPasswordChangeDateTime,signInActivity"
+$allusers = Get-MgUser -Filter 'assignedLicenses/$count ne 0' -ConsistencyLevel eventual -CountVariable licensedUserCount -all -Property "accountEnabled,onPremisesDistinguishedName, onPremisesDomainName,displayName,userPrincipalName,UserType,Id,jobtitle,EmployeeId,OfficeLocation,Mail,Department,Country,UsageLocation,onPremisesSamAccountName,CreatedDatetime,LastPasswordChangeDateTime,signInActivity"
 }
 #Create Output
 $output = @()
@@ -395,8 +396,8 @@ $reportlicenses = $finallicenses -join ","
 $list=New-Object System.Collections.ArrayList
 
 
-$excelfile1 = "testeexcel.xlsx" 
-$excelfile2 = "testeexcel.xlsx"  
+$excelfile1 = "testeexcel4.xlsx" 
+$excelfile2 = "testeexcel4.xlsx"  
 $sheetname1 = "MembrosdeGruposCAPolicies"
 $sheetname2 = "TodosUsuariosLicenciados"
 
@@ -439,8 +440,8 @@ $list  | Export-excel $excelfilename -worksheetname "PROCVMembrosdeGruposELicenc
 $list=New-Object System.Collections.ArrayList
 
 
-$excelfile1 = "testeexcel.xlsx" 
-$excelfile2 = "testeexcel.xlsx"  
+$excelfile1 = "testeexcel4.xlsx" 
+$excelfile2 = "testeexcel4.xlsx"  
 $sheetname1 = "MembrosdeSubGruposCAPolicies"
 $sheetname2 = "TodosUsuariosLicenciados"
 
@@ -481,8 +482,34 @@ $list  | Export-excel $excelfilename -worksheetname "PROCVMembrosdeSubGruposELic
  
 }
 
+}
+
 #Script End
  
  
  
  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+#Get Members from Scoped Policy Groups
+
+ 
+
+ 
+
+#foreach($group in $resultincludedgroups.id){
+#$Groupmembersid = get-mggroupmember -GroupId $group -all
+#$IDTYPE += New-object PSObject -Property $([ordered]@{
+	#ID = $groupmembersid.id
+	#QMemberType = $groupmembersid.additionalproperties.'@odata.type'
+#})
+#}
+
+#Q}
