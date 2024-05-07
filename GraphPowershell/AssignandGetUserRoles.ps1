@@ -39,5 +39,4 @@ $joinroleanduser = Join-Object -Left $rolesassigned -Right $users -LeftJoinPrope
 
 #Join Assignment Role Information
 $joinfull = Join-Object -Left $joinroleanduser -Right $roles -LeftJoinProperty roledefinitionid -RightJoinProperty id -RightMultiMode SubGroups
- 
-$joinfull 
+ $joinfull | ft displayname,userprincipalname,startdatetime,enddatetime,principalid,roledefinitionid,rightgroup
