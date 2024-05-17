@@ -16,7 +16,8 @@ $params = @{
   "PrincipalId" = $id
   #Change for the Needed Role ID
   "RoleDefinitionId" = "7be44c8a-adaf-4e2a-84d6-ab2649e08a13"
-  "Justification" = "RITM0587603"
+  #Input Justification
+  "Justification" = ""
   "DirectoryScopeId" = "/"
   "Action" = "AdminAssign"
   "ScheduleInfo" = @{
