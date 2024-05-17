@@ -2,13 +2,13 @@
 $users = @()
 #Get Role Definitions(need RoledefinitionId)
 $roles = Get-MgRoleManagementDirectoryRoleDefinition | select displayname,description,isbuiltin,isenabled,id
-
+$roles
 foreach($user in get-content c:\temp\users.txt){
 $users += get-mguser -Userid $user}
 
 
 #Check Desired Role
-$roles
+
 $rolesassigned = @()
 foreach($user in $users){
 $id = $user.id
