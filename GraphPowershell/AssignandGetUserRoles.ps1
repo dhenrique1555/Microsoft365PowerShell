@@ -1,10 +1,12 @@
 #Get user list to be assigned ObjectID
 $users = @()
+#Get Role Definitions(need RoledefinitionId)
+$roles = Get-MgRoleManagementDirectoryRoleDefinition | select displayname,description,isbuiltin,isenabled,id
+
 foreach($user in get-content c:\temp\users.txt){
 $users += get-mguser -Userid $user}
 
-#Get Role Definitions(need RoledefinitionId)
-$roles = Get-MgRoleManagementDirectoryRoleDefinition | select displayname,description,isbuiltin,isenabled,id
+
 #Check Desired Role
 $roles
 $rolesassigned = @()
