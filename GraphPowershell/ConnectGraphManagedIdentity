@@ -1,0 +1,19 @@
+# Connect to Azure with system-assigned managed identity
+$AzureContext = (Connect-AzAccount -Identity).context
+
+# Set and store context
+$AzureContext = Set-AzContext -SubscriptionName $AzureContext.Subscription -DefaultProfile $AzureContext
+
+#Extract the access token from the AzAccount authentication context and use it to connect to Microsoft Graph
+$token = (Get-AzAccessToken -ResourceTypeName MSGraph).token
+
+$RequiredScopes = @(
+"Directory.ReadWrite.All"
+"AuditLog.Read.All"
+"Organization.Read.All"
+"User.Read.All"
+"UserAuthenticationMethod.ReadWrite.All"
+)
+$securetoken = ConvertTo-SecureString -String $token -ASPLAINTEXT -force
+Connect-MgGraph -AccessToken $securetoken
+Get-mgcontext | Select -expandproperty Scopes 
