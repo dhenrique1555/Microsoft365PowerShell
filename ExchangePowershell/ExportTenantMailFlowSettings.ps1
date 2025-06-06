@@ -1,9 +1,8 @@
 
 #-----------------------------Authentication------------------------------------#
-$AppId = "42626afa-1e81-4740-9485-632f8e78198c"
-$CertificateThumbprint = "9D3A60198212EB50585203B42AB5074557B0CB4C"
-$Organization = "infios.com"
-#$TenantID = "87d6e06b-b166-4d90-9d35-c66398a67e9e"
+$AppId = ""
+$CertificateThumbprint = ""
+$Organization = ""
 Connect-ExchangeOnline -AppId $AppId -CertificateThumbprint $CertificateThumbprint -Organization $Organization -ShowBanner:$false
 Write-Output $env:COMPUTERNAME": Connected to Exchange Online"
 
