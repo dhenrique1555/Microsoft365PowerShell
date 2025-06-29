@@ -8,7 +8,7 @@ Foreach ($Module in $Modules){
   Foreach ($Version in $Versions){
     $ModuleVersion = $Version.Version
     Write-Host "Uninstall-Module $ModuleName $ModuleVersion"
-    Uninstall-Module $ModuleName -RequiredVersion $ModuleVersion -ErrorAction SilentlyContinue
+    Uninstall-Module $ModuleName -RequiredVersion $ModuleVersion 
   }
 }
 
@@ -22,7 +22,7 @@ Foreach ($InstalledModule in $InstalledModules){
   Foreach ($InstalledVersion in $InstalledVersions){
     $InstalledModuleVersion = $InstalledVersion.Version
     Write-Host "Uninstall-Module $InstalledModuleName $InstalledModuleVersion"
-    Uninstall-Module $InstalledModuleName -RequiredVersion $InstalledModuleVersion -ErrorAction SilentlyContinue
+    Uninstall-Module $InstalledModuleName -RequiredVersion $InstalledModuleVersion 
   }
 }
 
