@@ -1,4 +1,4 @@
-$SiteURL = "https://kscsglobal.sharepoint.com/sites/LEX-TAS-1-OSP-DE"
+$SiteURL = ""
 $ListName = "Permanentes Dokumentarchiv"
   
 #Connect to PnP Online
