@@ -1,0 +1,21 @@
+# 1. Grab the token object
+$tokenObj = Get-AzAccessToken -ResourceUrl "https://api.powerplatform.com"
+
+# 2. Unwrap the SecureString into plain text
+$plainToken = if ($tokenObj.Token -is [System.Security.SecureString]) {
+    [System.Net.NetworkCredential]::new("", $tokenObj.Token).Password
+} else {
+    $tokenObj.Token
+}
+
+# 3. Extract payload, fix Base64Url characters, and add padding
+$payload = $plainToken.Split('.')[1]
+$payload = $payload.Replace('-', '+').Replace('_', '/')
+$padding = $payload.Length % 4
+if ($padding -gt 0) { $payload += '=' * (4 - $padding) }
+
+# 4. Decode and convert to an object
+$decodedToken = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($payload)) | ConvertFrom-Json
+
+# 5. Show the critical claims
+$decodedToken | Select-Object aud, appid, scp, roles, upn | Format-List
