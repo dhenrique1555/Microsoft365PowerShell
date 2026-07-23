@@ -2,7 +2,7 @@
 Import-Module Microsoft.Graph.Beta.Sites
 #Add Permission
 $siteid = ""
-listid = ""
+$listid = ""
 $listitemId = ""
 $params = @{
 	grantedToV2 = @{
