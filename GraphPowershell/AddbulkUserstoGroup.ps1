@@ -1,5 +1,8 @@
 Import-Module Microsoft.Graph.Groups
 $users = get-content c:\temp\users.txt
+#Create new Group if needed
+$newgroup = New-MgGroup -DisplayName 'Test Group' -MailEnabled:$False  -MailNickName 'testgroup' -SecurityEnabled
+
 
 foreach($user in $users){
 $userinfo = get-mguser -userid $user
@@ -9,7 +12,7 @@ $params = @{
 	"@odata.id" = "https://graph.microsoft.com/v1.0/directoryObjects/$id"
 }
 
-New-MgGroupMemberByRef -GroupId e2121bd1-82ef-407e-8bf3-bcfd0144780b -BodyParameter $params
+New-MgGroupMemberByRef -GroupId $newgroup.id -BodyParameter $params
 
 #######################Version2
 Import-Module Microsoft.Graph.Groups
