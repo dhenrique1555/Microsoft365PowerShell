@@ -3,7 +3,7 @@ $users = get-content c:\temp\users.txt
 #Create new Group if needed
 $newgroup = New-MgGroup -DisplayName 'Test Group' -MailEnabled:$False  -MailNickName 'testgroup' -SecurityEnabled
 
-
+$groupid = ""
 foreach($user in $users){
 $userinfo = get-mguser -userid $user
 $id = $userinfo.id
